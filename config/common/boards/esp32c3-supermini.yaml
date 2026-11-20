@@ -1,0 +1,37 @@
+# ESP32-C3 Super Mini (standard, black PCB)
+# https://www.espboards.dev/esp32/esp32-c3-super-mini/
+#
+# - ESP32-C3 (single-core RISC-V, 160 MHz), 4 MB flash, 400 KB SRAM,
+#   WiFi 802.11b/g/n + BLE 5, USB-C with native USB (no UART bridge chip).
+# - Onboard LEDs: red power LED (always on, not controllable) and a single
+#   blue user LED on GPIO8. No RGB LED on this variant.
+# - Safe GPIOs with no boot/system role: 0, 1, 3, 10
+# - Use with care (strapping/boot): 2, 4, 5, 6, 7, 8, 9
+#     GPIO8 must be HIGH at reset; GPIO9 LOW at reset = download mode
+# - GPIO20/21 are UART0 RX/TX (console/bootloader). I2C default is
+#   SDA=GPIO8 (avoid if possible), SCL=GPIO9.
+# - Weak spot: ceramic antenna (CrossAir CA-C03) sits close to the ground
+#   plane, so WiFi range is poor. A ~31 mm quarter-wave wire soldered to
+#   the antenna feed pad adds about 6-10 dB.
+# - The red "Plus" variant has a u.FL antenna connector and a WS2812 RGB LED
+#   on GPIO8 instead (see the Plus page).
+
+esp32:
+  board: esp32-c3-devkitm-1
+  variant: ESP32C3
+  flash_size: 4MB
+  framework:
+    type: esp-idf
+
+logger:
+  hardware_uart: USB_SERIAL_JTAG
+
+output:
+  - platform: gpio
+    pin: 8
+    id: blue_led
+
+light:
+  - platform: binary
+    name: "Blue LED"
+    output: blue_led

@@ -1,0 +1,70 @@
+# M5Stack M5StickS3 (SKU K150)
+# https://shop.m5stack.com/products/m5sticks3-esp32s3-mini-iot-dev-kit
+# https://docs.m5stack.com/en/products/sku/K150  (pin map, schematics)
+#
+# - ESP32-S3-PICO-1-N8R8 (dual-core Xtensa LX7, 240 MHz), 8 MB flash, 8 MB
+#   octal PSRAM, 2.4 GHz WiFi + BLE. 48 x 24 x 15 mm, 250 mAh LiPo built in.
+# - USB-C with native USB. Download mode: hold the power button until the
+#   green LED blinks, then release.
+# - Power button: single click = power on / reset, double click = power off.
+# - Display: ST7789P3, 135 x 240 SPI LCD.
+#     MOSI=GPIO39, SCK=GPIO40, DC(RS)=GPIO45, CS=GPIO41, RST=GPIO21,
+#     BL=GPIO38
+# - I2C (shared bus): SDA=GPIO47, SCL=GPIO48
+#     BMI270 IMU 0x68, M5PM1 power management 0x6e, ES8311 audio codec 0x18
+# - Audio (ES8311 codec over I2S, MEMS mic + AW8737 amp + speaker):
+#     MCLK=GPIO18, BCLK=GPIO17, LRCK=GPIO15, DOUT=GPIO14, DIN=GPIO16
+# - Buttons: KEY1=GPIO11, KEY2=GPIO12 (inputs)
+# - IR: TX=GPIO46, RX=GPIO42. IR receive must use the RMT peripheral
+#   (not plain GPIO), and the speaker amp must be OFF or reception fails.
+# - M5PM1 (I2C 0x6e) controls charging status, the L3B power rail, the
+#   speaker amp pulse, and EXT_5V. EXT_5V also powers Grove, the Hat bus
+#   5V and the IR TX/RX, and M5Unified leaves it disabled by default,
+#   so IR needs it switched on over I2C.
+# - Grove (HY2.0-4P): G9 (yellow), G10 (white), 5V, GND. 5V defaults to
+#   input; don't feed power from another output pin.
+# - Hat2-Bus (top, 16 pin): GPIO1-8, GPIO43/44 (UART0 TX/RX), EXT_5V, 5V_IN,
+#   BAT, 3V3_L2, Boot.
+# - On battery, keep speaker volume under 75% or the board may reboot.
+# - Not compatible with Hat Mini JoyC, Hat Mini EncoderC or Hat 18650C.
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 8MB
+  framework:
+    type: esp-idf
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+logger:
+  hardware_uart: USB_SERIAL_JTAG
+
+i2c:
+  sda: GPIO47
+  scl: GPIO48
+  scan: true
+
+spi:
+  - id: lcd_spi
+    clk_pin: GPIO40
+    mosi_pin: GPIO39
+
+output:
+  - platform: ledc
+    pin: GPIO38
+    id: backlight_pwm
+    min_power: 0.05
+
+light:
+  - platform: monochromatic
+    name: "Display Backlight"
+    id: backlight
+    output: backlight_pwm
+    restore_mode: ALWAYS_ON
+    default_transition_length: 0s
+    gamma_correct: 1.0
+
+

@@ -1,0 +1,61 @@
+# Seeed Studio XIAO ESP32C6
+# https://www.espboards.dev/esp32/xiao-esp32c6/
+#
+# - ESP32-C6 (RISC-V, 160 MHz + 20 MHz low-power core), 4 MB flash, 512 KB
+#   SRAM, no PSRAM. WiFi 6 (802.11ax), BLE 5, plus an 802.15.4 radio for
+#   Zigbee, Thread and Matter-over-Thread. 21 x 17.8 mm, 11 GPIO broken out.
+# - Onboard LEDs: user LED on GPIO15 and a red charge LED (battery charger,
+#   not controllable). Polarity isn't stated on the page; Seeed's board is
+#   active-low (lights when driven LOW). Drop `inverted` if it's backwards.
+# - Battery: solder pads for a 3.7 V LiPo with an onboard charger.
+#   Deep sleep is about 15 uA.
+# - Safe GPIOs with no boot/system role: 0, 1, 2, 18, 19, 20, 21, 22, 23
+# - Use with care: GPIO16/17 (UART0 TX/RX; serial console and programming)
+# - Default buses: I2C SDA=GPIO22, SCL=GPIO23; SPI MOSI=GPIO18, MISO=GPIO20,
+#   SCK=GPIO19; UART TX=GPIO16, RX=GPIO17
+# - ADC only on GPIO0-2 (3 channels); PWM on every GPIO
+# - Two antennas: onboard ceramic (default) and a u.FL socket, chosen by an
+#   RF switch. GPIO3 is held LOW to enable the switch, then GPIO14 selects:
+#   OFF/LOW = ceramic (default on first boot), ON/HIGH = u.FL. The setting is
+#   remembered across reboots. Neither pin is broken out. Only turn on u.FL
+#   if an antenna is actually attached.
+
+esp32:
+  board: seeed_xiao_esp32c6
+  variant: esp32c6
+  flash_size: 4MB
+  framework:
+    type: esp-idf
+
+logger:
+  hardware_uart: USB_SERIAL_JTAG # frees GPIO16/17
+
+output:
+  - platform: gpio
+    pin:
+      number: GPIO15
+      inverted: true   # user LED is active-low on Seeed's board; remove if backwards
+    id: user_led
+
+light:
+  - platform: binary
+    name: "User LED"
+    id: user_led_light
+    output: user_led
+
+switch:
+  # RF switch enable: GPIO3 held LOW at boot (enables antenna selection)
+  - platform: gpio
+    pin: GPIO3
+    id: rf_switch_enable
+    internal: true            # not exposed to Home Assistant
+    restore_mode: ALWAYS_OFF  # LOW, enable the switch below
+
+  # Antenna select: OFF = onboard ceramic (default), ON = external u.FL
+  - platform: gpio
+    pin: GPIO14
+    id: rf_antenna_select
+    name: "External Antenna"
+    restore_mode: RESTORE_DEFAULT_OFF  # remembers the last choice, ceramic on first boot
+    entity_category: config
+    icon: mdi:antenna

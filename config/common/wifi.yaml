@@ -1,0 +1,54 @@
+# Shared WiFi package: reusable across any device 
+# needs ${friendly_name} via substitution
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: ${friendly_name}
+    password: !secret fallback_password
+
+captive_portal:
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+      id: ip_address
+      icon: "mdi:ip-network"
+      entity_category: diagnostic
+    ssid:
+      name: "SSID"
+      id: ssid
+      icon: "mdi:router-wireless"
+      entity_category: diagnostic
+    bssid:
+      name: "BSSID"
+      id: bssid
+      icon: "mdi:router-wireless"
+      entity_category: diagnostic
+    mac_address:
+      name: "MAC Address"
+      id: mac_address
+      icon: "mdi:expansion-card-variant"
+      entity_category: diagnostic
+
+sensor:
+  - platform: wifi_signal
+    name: "WiFi Signal dB"
+    id: wifi_signal_db
+    icon: "mdi:wifi"
+    entity_category: diagnostic
+    update_interval: 60s
+
+  - platform: copy
+    source_id: wifi_signal_db
+    name: "WiFi Signal Percent"
+    id: wifi_signal_percent
+    icon: "mdi:wifi"
+    entity_category: diagnostic
+    unit_of_measurement: "%"
+    device_class: ""
+    # map input values from x=-100 to x=-50 into 0-100%
+    filters:
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);

@@ -1,0 +1,57 @@
+# Generic ESP32-S3 (DevKitC-1 clone, ESP32-S3-WROOM-1)
+# https://www.espboards.dev/esp32/yd-esp32-s3/
+#
+# - ESP32-S3 (dual-core Xtensa LX7, 240 MHz), 512 KB SRAM, WiFi 802.11b/g/n
+#   + BLE 5, PCB antenna. 57.15 x 27.94 mm, 44 pins at 2.54 mm, 36 GPIO.
+# - Memory depends on the module variant (check the label on the shield):
+#     N16R8 (this config): 16 MB flash, 8 MB octal PSRAM
+#     N8R8: 8 MB flash, 8 MB octal PSRAM
+#     N8R2: 8 MB flash, 2 MB quad PSRAM (use psram mode: quad)
+# - Two USB-C ports:
+#     UART port: CH343P USB-serial on UART0 (GPIO43 TX / GPIO44 RX),
+#       used for flashing and logs by default
+#     Native USB port: GPIO19 (D-) / GPIO20 (D+), no driver needed
+#   If the native port isn't detected, hold BOOT while plugging in.
+# - Onboard: WS2812 addressable RGB LED on GPIO48, BOOT button on GPIO0,
+#   RESET (EN) button.
+# - Safe GPIOs with no boot/system role: 1, 2, 4, 5, 6, 7, 8, 15, 16, 17,
+#   18, 21, 38
+# - Strapping pins (use with care): 0, 3, 45, 46
+#     GPIO0 LOW at reset = download mode; GPIO46 is input-only
+# - JTAG default pins (free unless you debug over JTAG): 39, 40, 41, 42
+# - GPIO9-14 are the SPI2 (FSPI) IO MUX pins; free unless you wire flash,
+#   an SD card or a display to FSPI.
+# - GPIO35/36/37 are used by octal PSRAM on N8R8/N16R8, so don't use them
+#   there (free on the quad-PSRAM N8R2).
+# - GPIO19/20 are native USB; GPIO43/44 are UART0.
+# - PWM on every GPIO, 20 ADC-capable pins, 14 capacitive touch inputs.
+# - Power: 5V pin feeds the 5V rail through diode D26. Bridge the IN-OUT
+#   solder pad to bypass the diode and also get USB 5V out on that pin
+#   (V1.4 schematic). 3V3 pins are 3.3 V outputs.
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
+  framework:
+    type: esp-idf
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+# Logs go to UART0, i.e. the CH343P USB-C port. For the native USB-C port
+# instead, set:
+# logger:
+#   hardware_uart: USB_SERIAL_JTAG
+logger:
+
+light:
+  - platform: esp32_rmt_led_strip
+    name: "Onboard RGB LED"
+    id: onboard_rgb
+    pin: GPIO48
+    num_leds: 1
+    chipset: WS2812
+    rgb_order: GRB
+    default_transition_length: 0s

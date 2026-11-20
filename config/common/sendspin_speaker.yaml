@@ -1,0 +1,188 @@
+# Shared Sendspin speaker package, defaults below work for MAX98357A. 
+# Override with substitutions in the device file. 
+# Source: https://github.com/RealDeco/SendspinZero/blob/main/SendspinZero-Speaker.yaml
+# Synced with upstream as of 2026.10.0
+
+substitutions:
+  # pin_gain: GPIO09      # gain +9dB if floating, +6 if short to VCC, +12 if short to GND
+  pin_i2s_dout: GPIO08    # dout/sdout/ sd/sdata/dacdat/data 
+  pin_i2s_bclk: GPIO07    # bck/bcclk/bit clock sck/ serial clock (optional)
+  pin_i2s_lrclk: GPIO44   # leftrightclock/lrck fs/framesync /ws/word select
+  media_sample_rate: "48000"
+  channel: mono
+  volume_min: 0.2
+  volume_max: 0.9
+
+esphome:
+  min_version: 2026.10.0
+  project:
+    name: realdeco.sendspin_zero
+    version: "2026.10.0"
+
+api:
+  on_client_connected:
+    - lambda: |-
+        if (!id(boot_sound_played)) {
+          id(boot_sound_played) = true;
+          if (id(startup_sound_switch).state) {
+            id(play_sound)->execute(true, std::string("ready_sound"));
+          }
+        }
+
+switch:
+  - platform: template
+    id: startup_sound_switch
+    name: Startup sound
+    icon: "mdi:bell-ring"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+  - platform: template
+    id: sendspin_delay_adjustable
+    name: "Sendspin adjustable delay"
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    turn_on_action:
+      - sendspin.media_source.enable_static_delay_adjustment:
+    turn_off_action:
+      - sendspin.media_source.disable_static_delay_adjustment:
+  - platform: sendspin
+    id: sendspin_unpaired_access
+    type: unpaired_access
+    name: "Sendspin Unpaired Access"
+    restore_mode: RESTORE_DEFAULT_ON
+
+button:
+  - platform: template
+    id: sendspin_confirm_pairing
+    name: "Sendspin Confirm Pairing"
+    icon: mdi:link-variant
+    entity_category: config
+    on_press:
+      - sendspin.confirm_pairing_window: sendspin_hub
+
+text_sensor:
+  - platform: sendspin
+    id: sendspin_pairing_code
+    type: pairing_code
+    name: "Sendspin Pairing Code"
+  # optional metadata sensors: type: title / artist / album
+
+sendspin:
+  id: sendspin_hub
+  on_pairing_failed:
+    - logger.log:
+        format: "Sendspin pairing failed: %s"
+        args: ["reason.c_str()"]
+        level: WARN
+
+i2s_audio:
+  - id: i2s_audio_bus
+    i2s_lrclk_pin: ${pin_i2s_lrclk}
+    i2s_bclk_pin: ${pin_i2s_bclk}
+
+speaker:
+  - platform: i2s_audio
+    id: box_speaker
+    i2s_audio_id: i2s_audio_bus
+    i2s_dout_pin: ${pin_i2s_dout}
+    dac_type: external
+    channel: ${channel}
+    sample_rate: ${media_sample_rate}
+    bits_per_sample: 16bit
+
+  - platform: mixer
+    id: mixing_speaker
+    output_speaker: box_speaker
+    num_channels: 2
+    source_speakers:
+      - id: announcement_mixing_input
+      - id: media_mixing_input
+
+  - platform: resampler
+    id: announcement_resampling_speaker
+    output_speaker: announcement_mixing_input
+    sample_rate: ${media_sample_rate}
+    bits_per_sample: 16
+
+  - platform: resampler
+    id: media_resampling_speaker
+    output_speaker: media_mixing_input
+    sample_rate: ${media_sample_rate}
+    bits_per_sample: 16
+
+audio_file:
+  - id: ready_sound
+    file: sounds/Home_Connected.flac
+
+media_source:
+  - platform: audio_file
+    id: audio_file_announcement_source
+  - platform: audio_http
+    id: http_announcement_source
+  - platform: audio_http
+    id: http_media_source
+  - platform: sendspin
+    id: sendspin_media_source
+    buffer_size: 500000
+
+media_player:
+  - platform: sendspin
+    id: sendspin_group_media_player
+    name: Sendspin Group Media Player
+
+  - platform: speaker_source
+    id: external_media_player
+    name: Media Player
+
+    announcement_pipeline:
+      format: FLAC
+      num_channels: 1
+      sample_rate: ${media_sample_rate}
+      speaker: announcement_resampling_speaker
+      sources:
+        - audio_file_announcement_source
+        - http_announcement_source
+
+    media_pipeline:
+      format: FLAC
+      num_channels: 2
+      sample_rate: ${media_sample_rate}
+      speaker: media_resampling_speaker
+      sources:
+        - http_media_source
+        - sendspin_media_source
+
+    volume_increment: 0.05
+    volume_min: ${volume_min}
+    volume_max: ${volume_max}
+
+script:
+  - id: play_sound
+    parameters:
+      priority: bool
+      sound_file: string
+    then:
+      - if:
+          condition:
+            lambda: return priority;
+          then:
+            - media_player.stop:
+                id: external_media_player
+                announcement: true
+      - lambda: |-
+          if ((id(external_media_player).state != media_player::MediaPlayerState::MEDIA_PLAYER_STATE_ANNOUNCING) || priority) {
+            id(external_media_player)
+              ->make_call()
+              .set_media_url("audio-file://" + sound_file)
+              .set_announcement(true)
+              .perform();
+          }
+
+globals:
+  - id: boot_sound_played
+    type: bool
+    restore_value: no
+    initial_value: "false"
+

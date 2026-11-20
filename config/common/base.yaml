@@ -1,0 +1,37 @@
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: false
+
+api:
+  encryption:
+    key: !secret gen_api
+
+ota:
+  - platform: esphome
+    id: ota_esphome
+    encryption:
+
+logger:
+  level: DEBUG # NONE, ERROR, WARN, INFO, DEBUG (default), VERBOSE, VERY_VERBOSE
+
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+    timezone: America/Detroit
+
+sensor:
+  - platform: uptime
+    name: "Uptime Sensor"
+    id: uptime_sensor
+    type: timestamp
+    entity_category: diagnostic
+
+binary_sensor:
+  - platform: status
+    name: "Status"
+
+button:
+  - platform: restart
+    name: "Restart"
+    entity_category: config

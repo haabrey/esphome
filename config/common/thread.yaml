@@ -1,0 +1,39 @@
+# Thread is IPv6-only
+network:
+  enable_ipv6: true
+
+openthread:
+  device_type: FTD  # Full Thread Device: router-eligible
+  tlv: !secret thread_tlv
+  # Stored dataset in flash wins over `tlv` by default. 
+  # For first setup, put uncommented line in main config, delete after joining network. 
+  # force_dataset: true
+  # Transmit power, ESP32-C6 allows -15..20 dBm. Respect your local regulatory limits.
+  # output_power: 10dBm
+
+text_sensor:
+  - platform: openthread_info
+    role:
+      name: Thread Role
+    rloc16:
+      name: Thread RLOC16
+    channel:
+      name: Thread Channel
+    ip_address:
+      name: Thread IP Address
+
+sensor:
+  - platform: openthread_info
+    # Parent values are only meaningful while the device is a child/REED, not once it is a router
+    parent_average_rssi:
+      name: Thread Parent RSSI
+      update_interval: 60s
+    tx_retries:
+      name: Thread TX Retries
+      update_interval: 60s
+    tx_err_cca:
+      name: Thread TX CCA Errors
+      update_interval: 60s
+    partition_id_changes:
+      name: Thread Partition Changes
+      update_interval: 60s
