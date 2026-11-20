@@ -1,0 +1,97 @@
+substitutions:
+  name: garage-door
+  friendly_name: Garage Door
+  # Status inverted
+  status_inverted: "true"
+  # Define logging level: NONE, ERROR, WARN, INFO, DEBUG (Default), VERBOSE, VERY_VERBOSE
+
+packages:
+  base: !include common/base.yaml
+  ble: !include common/ble.yaml
+  wifi: !include common/wifi.yaml
+
+# -------------------
+
+esp32:
+  board: esp32-c3-devkitm-1
+  flash_size: 4MB
+  variant: ESP32C3
+  framework:
+    type: esp-idf
+    version: recommended
+    sdkconfig_options:
+      # Extend the watchdog timeout, so the device reboots if the device appears locked up for over 10 seconds.
+      CONFIG_ESP_TASK_WDT_TIMEOUT_S: "10"
+
+logger:
+  baud_rate: 0  # 0 Enables logging, but disables serial-port logging to free CPU and memory
+  hardware_uart: UART0
+  
+binary_sensor:
+  - platform: gpio
+    name: "Contact"
+    disabled_by_default: true
+    device_class: garage_door
+    id: contact
+    pin:
+      number: GPIO18
+      inverted: "${status_inverted}"
+    filters:
+      - delayed_on: 20ms
+
+  - platform: gpio
+    pin:
+      number: GPIO3
+      mode: INPUT_PULLUP
+      inverted: true
+    name: "Button"
+    disabled_by_default: true
+    filters:
+      - delayed_on_off: 20ms
+    on_multi_click:
+      - timing:
+          - ON for at most 1s
+          - OFF for at least 0.2s
+        then:
+          - switch.turn_on: relay
+
+switch:
+  - platform: gpio
+    pin: GPIO7
+    name: "Relay"
+    id: relay
+    disabled_by_default: true
+    on_turn_on:
+      - light.turn_on: wifi_led
+      - delay: 1s
+      - switch.turn_off: relay
+      - light.turn_off: wifi_led
+
+light:
+  - platform: status_led
+    name: "Status LED"
+    id: wifi_led
+    disabled_by_default: true
+    pin: GPIO4
+
+cover:
+  - platform: template
+    device_class: garage
+    name: "Garage Door"
+    lambda: "return id(contact).state ? COVER_OPEN : COVER_CLOSED;"
+    open_action:
+      then:
+       - if:
+          condition:
+            lambda: 'return !id(contact).state;'
+          then:
+              - switch.turn_on: relay
+    stop_action:
+      - switch.turn_on: relay
+    close_action:
+      then:
+       - if:
+          condition:
+            lambda: 'return id(contact).state;'
+          then:
+            - switch.turn_on: relay
