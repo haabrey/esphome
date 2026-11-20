@@ -1,0 +1,12 @@
+# Board: ESP32-C3 Super Mini (Generic)
+# Definition: definitions/boards/esp32-c3-supermini/manifest.yaml
+
+substitutions:
+  name: c3-supermini-1
+  friendly_name: C3 SuperMini-1
+
+packages:
+  base: !include common/base.yaml
+  board: !include common/boards/esp32c3-supermini-plus.yaml
+  wifi: !include common/wifi.yaml  
+  ble: !include common/ble.yaml
