@@ -1,0 +1,18 @@
+# Seeed XIAO ESP32S3 with MAX98357A, single speaker (3.5 W, 4-8 ohm)
+# Copy this file for each new device and change the name and pins.
+
+substitutions:
+  name: bb-living-room
+  friendly_name: BB Living Room
+  # Override only what differs from the package defaults:
+  # pin_i2s_dout: GPIO08
+  # pin_i2s_bclk: GPIO07
+  # pin_i2s_lrclk: GPIO44
+  # pin_gain: GPIO09   # wired to amp GAIN, unused in firmware (floating = 9 dB)
+
+packages:
+  base: !include common/base.yaml
+  wifi: !include common/wifi.yaml
+  ble: !include common/ble.yaml
+  speaker: !include common/sendspin_speaker.yaml
+  board: !include common/boards/xiao-esp32s3.yaml
